@@ -9,7 +9,7 @@
     header { background: #007BBB; color: white; padding: 1rem; text-align: center; }
     .container { max-width: 900px; margin: auto; padding: 20px; }
     
-    .tabs { display: flex; justify(content): center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
     .tab-btn { padding: 10px 20px; cursor: pointer; border: 1px solid #007BBB; background: white; border-radius: 5px; font-weight: bold; transition: 0.3s; flex: 1; min-width: 70px; text-align: center;}
     .tab-btn.active { background: #007BBB; color: white; }
     
@@ -69,7 +69,7 @@
       width: 100%; height: 75vh; background: #000; position: relative;
       display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
-    .modal-img { max-width: 100%; max-height: 100%; object-fit: contain; will-change: transform; }
+    .modal-img { max-width: 100%; max-height: 100%; object-fit: contain; will-change: transform; transition: transform 0.3s ease-out, opacity 0.3s; }
     .modal-text { width: 100%; padding: 25px 40px; background: #fff; box-sizing: border-box; overflow-y: auto; }
     #v-room { margin: 0 0 10px 0; font-size: 1.6rem; color: #333; }
     #v-desc { font-size: 1.1rem; line-height: 1.7; color: #555; white-space: pre-wrap; }
@@ -167,7 +167,6 @@
 </div>
 
 <script>
-  // ★ここに最新のGASデプロイURLを貼り付けてください
   const GAS_API_URL = "https://script.googleusercontent.com/macros/echo?user_content_key=AehSKLhXGnzIC2gE5UyWBguvXvQ67TDlhntpzzdh9Q4nV9kcwXOPo9XNaMj5WGE1J4U3PicNCAmqKRGZ1RVHQgSAcgX4JDJ23y3eFt7p0B_dVYQvCdG1ryQPBJ0SGUIZ2CNvhPD9WOlt523372OmzLxU2eYZ7nHqu4PS3pA-vutv_1L-i3b3UVJRoKcn0Zc_5v6wXYfQoZzG31Hnm5bN1s_BJ1VXrfh_78JKLSvY5ac4Np-VLiC1voGOj41k7yHVEhJ52ywmg39W43CMRhWcH_kFJKBzlRqnouNkX5b_Lxey&lib=Mp76_62xJm8fQqCNSnmRDrlyIfNZbfkjO";
 
   let allData = [];
@@ -178,12 +177,10 @@
   let mScale = 1; let mOffsetX = 0; let mOffsetY = 0;
   let mIsDragging = false; let mStartX, mStartY; let mInitialDist = 0;
 
-  // GitHub Pages用に fetch メソッドを使用してデータを取得
   window.onload = function() {
     fetch(GAS_API_URL)
       .then(response => response.json())
       .then(data => {
-        // GAS側で .slice(1) 済みなら data そのまま、そうでなければ data.slice(1)
         let cleanData = data.filter(row => row[1] && row[3]);
         cleanData.sort((a, b) => {
           const floorA = a[1]; const floorB = b[1];
@@ -197,10 +194,7 @@
         renderFloorThumbs(allData);
         initMapControls();
       })
-      .catch(error => {
-        console.error("データの読み込みに失敗しました:", error);
-        alert("データの読み込みに失敗しました。GASのURLを確認してください。");
-      });
+      .catch(error => console.error("データ読み込み失敗:", error));
   };
 
   function initMapControls() {
@@ -216,13 +210,7 @@
     }, {passive: true});
 
     frame.addEventListener('touchmove', (e) => {
-      if (mScale > 1 || e.touches.length === 2) {
-        if (e.cancelable) e.preventDefault();
-      } else {
-        mIsDragging = false;
-        return;
-      }
-
+      if (mScale > 1 || e.touches.length === 2) { if (e.cancelable) e.preventDefault(); } else { mIsDragging = false; return; }
       if (e.touches.length === 2) {
         const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
         mScale = Math.min(Math.max(1, mScale * (dist / mInitialDist)), 4);
@@ -233,7 +221,6 @@
       }
       applyMapTransform();
     }, {passive: false});
-
     frame.addEventListener('touchend', () => { mIsDragging = false; });
   }
 
@@ -241,9 +228,7 @@
     const target = document.querySelector('.map-wrapper.active .map-img-container');
     const frame = document.getElementById('map-parent-frame');
     if (!target) return;
-    if (mScale <= 1.01) {
-      mScale = 1; mOffsetX = 0; mOffsetY = 0;
-    } else {
+    if (mScale <= 1.01) { mScale = 1; mOffsetX = 0; mOffsetY = 0; } else {
       const limitX = (frame.clientWidth * (mScale - 1)) / 2;
       const limitY = (frame.clientHeight * (mScale - 1)) / 2;
       mOffsetX = Math.min(Math.max(mOffsetX, -limitX), limitX);
@@ -268,8 +253,7 @@
     const renderedSpots = {};
     let lastX = null, lastY = null, lastAngle = 0, lastFloor = "";
     allData.forEach(row => {
-      const floor = row[1];
-      if (floor === '外観') return; 
+      const floor = row[1]; if (floor === '外観') return; 
       let x = row[6], y = row[7], angle = row[8] || 0;
       if (!x && floor === lastFloor) { x = lastX; y = lastY; angle = lastAngle; } 
       else { lastX = x; lastY = y; lastAngle = angle; lastFloor = floor; }
@@ -284,12 +268,6 @@
       marker.style.left = x + '%'; marker.style.top = y + '%';
       marker.innerHTML = `<span style="transform: rotate(${angle}deg); display: inline-block;">➔</span>`;
       const groupKey = row[1] + "-" + row[4];
-      const groupPhotos = groupedData[groupKey];
-      if (groupPhotos && groupPhotos.length > 1) {
-        const badge = document.createElement('div');
-        badge.className = 'marker-badge'; badge.innerText = groupPhotos.length;
-        marker.appendChild(badge);
-      }
       marker.onclick = (e) => { e.stopPropagation(); openViewer(groupKey, 0, false); };
       wrapper.appendChild(marker);
     });
@@ -320,34 +298,32 @@
   function openViewer(groupKey, index, isAllMode) {
     if (isAllMode) { currentGroup = allData; currentIndex = index; } 
     else { currentGroup = groupedData[groupKey]; currentIndex = index; }
-    updateViewer();
+    updateViewer(true);
     document.getElementById('viewer').style.display = 'flex';
   }
 
-    function updateViewer() {
+  function updateViewer(isInitial = false) {
     const item = currentGroup[currentIndex]; if(!item) return;
+    const img = document.getElementById('v-img');
     
-    // アニメーションのために一度透明にする
-    imgElement.style.opacity = 0;
+    // スライド感を出すため、切り替え時だけ一瞬透明にして位置をリセット
+    img.style.transition = 'none';
+    if(!isInitial) img.style.opacity = 0; 
     
     setTimeout(() => {
-      imgElement.src = item[3];
+      img.src = item[3];
       document.getElementById('v-floor').innerText = item[1];
       document.getElementById('v-room').innerText = item[2];
       document.getElementById('v-desc').innerText = item[5] ? item[5].trim() : "";
       document.getElementById('v-counter').innerText = `${currentIndex + 1} / ${currentGroup.length}`;
-      
-      // ボタンの表示・非表示
       document.querySelectorAll('.nav-btn').forEach(b => b.style.display = currentGroup.length > 1 ? 'block' : 'none');
       
-      resetZoom(); // ズームをリセットして位置を戻す
+      resetZoom();
       
-      // フワッと表示させる
-      imgElement.style.transition = 'opacity 0.3s ease-in-out';
-      imgElement.style.opacity = 1;
+      img.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
+      img.style.opacity = 1;
     }, 50);
   }
-
 
   function changeSlide(n) {
     if (currentGroup.length <= 1) return;
@@ -371,35 +347,54 @@
 
   viewerElement.addEventListener('touchstart', e => {
     imgElement.style.transition = 'none';
-    if (e.touches.length === 2) { isPinching = true; initialPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); } 
-    else { isPinching = false; touchStartX = e.changedTouches[0].screenX; lastStartX = e.changedTouches[0].screenX - dragX; lastStartY = e.changedTouches[0].screenY - dragY; }
+    if (e.touches.length === 2) { 
+      isPinching = true; 
+      initialPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+    } else { 
+      isPinching = false; 
+      touchStartX = e.changedTouches[0].screenX; 
+      lastStartX = e.changedTouches[0].screenX - dragX; 
+      lastStartY = e.changedTouches[0].screenY - dragY; 
+    }
   }, {passive: false});
 
   viewerElement.addEventListener('touchmove', e => {
-    if (isPinching && e.touches.length === 2) { e.preventDefault(); const currentDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); scale = Math.min(Math.max(1, scale * (currentDistance / initialPinchDistance)), 4); updateTransform(); initialPinchDistance = currentDistance; } 
-    else if (!isPinching) { if (scale === 1) { if (currentGroup.length > 1) { currentTranslateX = e.changedTouches[0].screenX - touchStartX; imgElement.style.transform = `translateX(${currentTranslateX}px) scale(1)`; } } else { e.preventDefault(); dragX = e.changedTouches[0].screenX - lastStartX; dragY = e.changedTouches[0].screenY - lastStartY; updateTransform(); } }
+    if (isPinching && e.touches.length === 2) { 
+      e.preventDefault(); 
+      const currentDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY); 
+      scale = Math.min(Math.max(1, scale * (currentDistance / initialPinchDistance)), 4); 
+      updateTransform(); 
+      initialPinchDistance = currentDistance; 
+    } else if (!isPinching) { 
+      if (scale === 1) { 
+        if (currentGroup.length > 1) { 
+          currentTranslateX = e.changedTouches[0].screenX - touchStartX; 
+          imgElement.style.transform = `translateX(${currentTranslateX}px) scale(1)`; 
+        } 
+      } else { 
+        e.preventDefault(); 
+        dragX = e.changedTouches[0].screenX - lastStartX; 
+        dragY = e.changedTouches[0].screenY - lastStartY; 
+        updateTransform(); 
+      } 
+    }
   }, {passive: false});
 
-    viewerElement.addEventListener('touchend', e => {
+  viewerElement.addEventListener('touchend', e => {
     imgElement.style.transition = 'transform 0.3s ease-out, opacity 0.3s';
     if (isPinching) { if (e.touches.length === 0) isPinching = false; return; }
-    
     if (scale === 1) { 
-      const threshold = window.innerWidth * 0.2; // 20%以上スワイプしたら次へ
-      if (currentTranslateX < -threshold) { 
-        changeSlide(1); 
-      } else if (currentTranslateX > threshold) { 
-        changeSlide(-1); 
-      } else { 
-        updateTransform(); 
-      }
+      const threshold = window.innerWidth * 0.2; 
+      if (currentTranslateX < -threshold) { changeSlide(1); } 
+      else if (currentTranslateX > threshold) { changeSlide(-1); } 
+      else { updateTransform(); }
       currentTranslateX = 0; 
     }
   }, {passive: true});
 
-
   function updateTransform() {
-    if (scale > 1) { imgElement.style.transform = `translate(${dragX}px, ${dragY}px) scale(${scale})`; } else { imgElement.style.transform = `translate(0px, 0px) scale(1)`; }
+    if (scale > 1) { imgElement.style.transform = `translate(${dragX}px, ${dragY}px) scale(${scale})`; } 
+    else { imgElement.style.transform = `translateX(${currentTranslateX}px) scale(1)`; }
   }
 
   function resetZoom() { scale = 1; dragX = 0; dragY = 0; currentTranslateX = 0; updateTransform(); }
